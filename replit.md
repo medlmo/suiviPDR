@@ -1,0 +1,107 @@
+# Replit Project Guide
+
+## Overview
+
+This is a full-stack TypeScript application for tracking regional development programs (PDR) for the Ministry of Agriculture in Morocco. The system manages projects, conventions, partners, and financial advances with a modern web interface.
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.
+
+## System Architecture
+
+### Frontend Architecture
+- **Framework**: React with TypeScript
+- **Build Tool**: Vite for development and build process
+- **Styling**: Tailwind CSS with shadcn/ui component library
+- **State Management**: TanStack Query (React Query) for server state
+- **Routing**: Wouter for client-side routing
+- **Form Handling**: React Hook Form with Zod validation
+
+### Backend Architecture
+- **Framework**: Express.js with TypeScript
+- **Database**: PostgreSQL with Drizzle ORM
+- **Authentication**: Replit's OpenID Connect authentication system
+- **Session Management**: Express sessions with PostgreSQL storage
+- **API Pattern**: RESTful APIs with JSON responses
+
+## Key Components
+
+### Database Schema
+The application uses a PostgreSQL database with the following main entities:
+- **Users**: User profiles from Replit authentication
+- **Projects**: Regional development projects with budgets and locations
+- **Conventions**: Legal agreements with status tracking
+- **Partners**: Organizations involved in projects
+- **Financial Advances**: Budget disbursements and tracking
+- **Sessions**: User session storage for authentication
+
+### Authentication System
+- Uses Replit's built-in OpenID Connect authentication
+- Sessions stored in PostgreSQL for persistence
+- Protected routes require authentication middleware
+- Automatic user profile management
+
+### UI Components
+- Built with shadcn/ui component library
+- Responsive design with mobile support
+- Modal dialogs for data entry and details
+- Tables with sorting and filtering
+- Toast notifications for user feedback
+
+### Data Management
+- Drizzle ORM for type-safe database operations
+- Zod schemas for input validation
+- TanStack Query for caching and synchronization
+- Optimistic updates for better user experience
+
+## Data Flow
+
+1. **User Authentication**: Users log in through Replit's OAuth system
+2. **Data Fetching**: React Query manages API calls and caching
+3. **Form Submission**: React Hook Form handles validation before API calls
+4. **Database Operations**: Drizzle ORM executes type-safe queries
+5. **Real-time Updates**: Query invalidation keeps data synchronized
+
+## External Dependencies
+
+### Database
+- **Neon Database**: Serverless PostgreSQL database
+- **Connection**: Uses connection pooling with @neondatabase/serverless
+
+### Authentication
+- **Replit Auth**: OpenID Connect integration
+- **Session Storage**: PostgreSQL-based session management
+
+### UI Framework
+- **Radix UI**: Accessible component primitives
+- **Tailwind CSS**: Utility-first styling
+- **Lucide React**: Icon library
+
+## Deployment Strategy
+
+### Development
+- **Local Development**: Uses Vite dev server with hot module replacement
+- **Database Migrations**: Drizzle Kit for schema management
+- **Environment Variables**: DATABASE_URL, SESSION_SECRET, REPLIT_DOMAINS
+
+### Production
+- **Build Process**: Vite builds frontend, esbuild bundles backend
+- **Server**: Express.js serves both API and static files
+- **Database**: Neon serverless PostgreSQL
+- **Authentication**: Replit's production OAuth endpoints
+
+### Key Scripts
+- `npm run dev`: Start development server
+- `npm run build`: Build for production
+- `npm run start`: Start production server
+- `npm run db:push`: Push database schema changes
+
+### Environment Setup
+The application requires these environment variables:
+- `DATABASE_URL`: PostgreSQL connection string
+- `SESSION_SECRET`: Secret for session encryption
+- `REPLIT_DOMAINS`: Allowed domains for authentication
+- `ISSUER_URL`: OAuth issuer URL (defaults to Replit)
+
+The project is structured as a monorepo with shared types and schemas, making it easy to maintain type safety across frontend and backend while keeping the codebase organized and scalable.
