@@ -23,6 +23,7 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, like, and } from "drizzle-orm";
+import bcrypt from 'bcrypt';
 
 export interface IStorage {
   // Local User operations
@@ -291,9 +292,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createLocalUser(user: InsertLocalUser): Promise<LocalUser> {
+    const hashedPassword = await bcrypt.hash(user.password, 10);
     const [newUser] = await db
       .insert(localUsers)
-      .values(user)
+      .values({ ...user, password: hashedPassword })
       .returning();
     return newUser;
   }
@@ -302,7 +304,10 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db
       .select()
       .from(localUsers)
-      .where(and(eq(localUsers.username, username), eq(localUsers.password, password)));
+      .where(eq(localUsers.username, username));
+    if (!user) return undefined;
+    const isValid = await bcrypt.compare(password, user.password);
+    if (!isValid) return undefined;
     return user;
   }
 }

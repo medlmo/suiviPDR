@@ -10,6 +10,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Sprout, LogIn } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { z } from "zod";
+import logoSoussMassa from '../../../attached_assets/Logo.png';
 
 const loginSchema = z.object({
   username: z.string().min(1, "Le nom d'utilisateur est requis"),
@@ -51,12 +52,12 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-slate-50">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto w-16 h-16 bg-primary rounded-full flex items-center justify-center mb-4">
-            <Sprout className="text-white text-xl" size={24} />
+          <div className="mx-auto w-24 h-24 flex items-center justify-center mb-4">
+            <img src={logoSoussMassa} alt="Logo Région Souss Massa" className="w-24 h-24 object-contain" />
           </div>
           <CardTitle className="text-2xl">Connexion</CardTitle>
           <p className="text-sm text-gray-600">
-            Plateforme PDR - Ministère de l'Agriculture
+            Plateforme PDR - Région Souss Massa
           </p>
         </CardHeader>
         <CardContent>

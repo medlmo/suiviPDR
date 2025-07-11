@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Sprout, FolderOpen, FileText, LogOut } from "lucide-react";
+import logoSoussMassa from '../../../attached_assets/Logo.png';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -11,8 +12,12 @@ interface LayoutProps {
 export default function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
   const { user } = useAuth();
 
-  const handleLogout = () => {
-    window.location.href = "/api/logout";
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    });
+    window.location.href = "/";
   };
 
   return (
@@ -23,18 +28,19 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-4">
               <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                <Sprout className="text-white" size={20} />
+                {/* Remplacement de l'icône Sprout par le logo */}
+                <img src={logoSoussMassa} alt="Logo Région Souss Massa" className="w-10 h-10 object-contain rounded-full bg-white" />
               </div>
               <div>
                 <h1 className="text-xl font-semibold text-gray-900">
                   Suivi de l'exécution des PDR
                 </h1>
-                <p className="text-sm text-gray-500">Ministère de l'Agriculture</p>
+                <p className="text-sm text-gray-500">Région Souss Massa</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-700">
-                {user?.firstName || user?.email || "Utilisateur"}
+                {user?.username || "Utilisateur"}
               </span>
               <Button variant="ghost" onClick={handleLogout}>
                 <LogOut className="h-4 w-4 mr-2" />
