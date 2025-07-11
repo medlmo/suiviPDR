@@ -105,3 +105,17 @@ The application requires these environment variables:
 - `ISSUER_URL`: OAuth issuer URL (defaults to Replit)
 
 The project is structured as a monorepo with shared types and schemas, making it easy to maintain type safety across frontend and backend while keeping the codebase organized and scalable.
+
+## Recent Changes: Latest modifications with dates
+
+### 2025-07-11: Migration and Role-Based Access Control Implementation
+- **Migration completed**: Successfully migrated from Replit Agent to Replit environment
+- **Database setup**: Created PostgreSQL database and applied schema migrations
+- **Role-based permissions**: Implemented three user roles with specific permissions:
+  - **Admin**: Full access to projects, conventions, and user management
+  - **User**: Can create, read, update, and delete projects and conventions
+  - **Superviseur**: Read-only access to projects and conventions
+- **Authentication system**: Enhanced with role-based authorization middleware
+- **User interface**: Updated to show/hide actions based on user permissions
+- **User management**: Added complete user management interface for admins
+- **Test users created**: admin/admin123, user1/admin123, superviseur1/admin123

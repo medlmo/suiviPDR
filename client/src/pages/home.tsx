@@ -1,15 +1,15 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import Layout from "@/components/layout";
 import Projects from "./projects";
 import Conventions from "./conventions";
-import { useState } from "react";
+import Users from "./users";
 
 export default function Home() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<"projects" | "conventions">("projects");
+  const [activeTab, setActiveTab] = useState<"projects" | "conventions" | "users">("projects");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -35,7 +35,9 @@ export default function Home() {
 
   return (
     <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
-      {activeTab === "projects" ? <Projects /> : <Conventions />}
+      {activeTab === "projects" && <Projects />}
+      {activeTab === "conventions" && <Conventions />}
+      {activeTab === "users" && <Users />}
     </Layout>
   );
 }

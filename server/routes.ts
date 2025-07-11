@@ -66,8 +66,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.status(401).json({ message: "Unauthorized" });
   };
 
+  // Role-based authorization middleware
+  const requireRole = (roles: string[]) => {
+    return async (req: any, res: any, next: any) => {
+      if (!req.session?.localUser) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const userRole = req.session.localUser.role;
+      if (!roles.includes(userRole)) {
+        return res.status(403).json({ message: "Insufficient permissions" });
+      }
+      
+      return next();
+    };
+  };
+
+  // Permission helpers
+  const canWrite = requireRole(['admin', 'user']); // admin et user peuvent écrire
+  const canManageUsers = requireRole(['admin']); // seul admin peut gérer les utilisateurs
+  const canRead = requireRole(['admin', 'user', 'superviseur']); // tous peuvent lire
+
   // Project routes
-  app.get('/api/projects', requireAuth, async (req, res) => {
+  app.get('/api/projects', canRead, async (req, res) => {
     try {
       const { search, sortBy, sortOrder } = req.query;
       const projects = await storage.getProjects(
@@ -82,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/projects/:id', requireAuth, async (req, res) => {
+  app.get('/api/projects/:id', canRead, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const project = await storage.getProject(id);
@@ -96,7 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/projects', requireAuth, async (req, res) => {
+  app.post('/api/projects', canWrite, async (req, res) => {
     try {
       const projectData = insertProjectSchema.parse(req.body);
       const project = await storage.createProject(projectData);
@@ -110,7 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/projects/:id', requireAuth, async (req, res) => {
+  app.put('/api/projects/:id', canWrite, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const projectData = insertProjectSchema.partial().parse(req.body);
@@ -125,7 +146,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/projects/:id', requireAuth, async (req, res) => {
+  app.delete('/api/projects/:id', canWrite, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteProject(id);
@@ -137,7 +158,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Convention routes
-  app.get('/api/conventions', requireAuth, async (req, res) => {
+  app.get('/api/conventions', canRead, async (req, res) => {
     try {
       const conventions = await storage.getConventions();
       res.json(conventions);
@@ -147,7 +168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/conventions/:id', requireAuth, async (req, res) => {
+  app.get('/api/conventions/:id', canRead, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const convention = await storage.getConvention(id);
@@ -161,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/conventions', requireAuth, async (req, res) => {
+  app.post('/api/conventions', canWrite, async (req, res) => {
     try {
       const conventionData = insertConventionSchema.parse(req.body);
       const convention = await storage.createConvention(conventionData);
@@ -175,7 +196,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/conventions/:id', requireAuth, async (req, res) => {
+  app.put('/api/conventions/:id', canWrite, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const conventionData = insertConventionSchema.partial().parse(req.body);
@@ -190,7 +211,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/conventions/:id', requireAuth, async (req, res) => {
+  app.delete('/api/conventions/:id', canWrite, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteConvention(id);
@@ -202,7 +223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Partner routes
-  app.get('/api/partners', requireAuth, async (req, res) => {
+  app.get('/api/partners', canRead, async (req, res) => {
     try {
       const partners = await storage.getPartners();
       res.json(partners);
@@ -212,7 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/partners', requireAuth, async (req, res) => {
+  app.post('/api/partners', canWrite, async (req, res) => {
     try {
       const partnerData = insertPartnerSchema.parse(req.body);
       const partner = await storage.createPartner(partnerData);
@@ -280,8 +301,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User Management routes (Admin only)
+  app.get('/api/users', canManageUsers, async (req, res) => {
+    try {
+      const users = await storage.getLocalUsers();
+      res.json(users.map(u => ({ id: u.id, username: u.username, role: u.role, createdAt: u.createdAt })));
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.post('/api/users', canManageUsers, async (req, res) => {
+    try {
+      const userData = insertLocalUserSchema.parse(req.body);
+      const user = await storage.createLocalUser(userData);
+      res.status(201).json({ id: user.id, username: user.username, role: user.role, createdAt: user.createdAt });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid user data", errors: error.errors });
+      }
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
+  app.put('/api/users/:id', canManageUsers, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userData = insertLocalUserSchema.partial().parse(req.body);
+      const user = await storage.updateLocalUser(id, userData);
+      res.json({ id: user.id, username: user.username, role: user.role, createdAt: user.createdAt });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid user data", errors: error.errors });
+      }
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  app.delete('/api/users/:id', canManageUsers, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteLocalUser(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
   // Financial Advance routes
-  app.get('/api/projects/:id/financial-advances', requireAuth, async (req, res) => {
+  app.get('/api/projects/:id/financial-advances', canRead, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const advances = await storage.getFinancialAdvances(projectId);
@@ -292,7 +364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/projects/:id/financial-advances', requireAuth, async (req, res) => {
+  app.post('/api/projects/:id/financial-advances', canWrite, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const advanceData = insertFinancialAdvanceSchema.parse({ ...req.body, projectId });

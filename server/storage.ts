@@ -28,7 +28,10 @@ import bcrypt from 'bcrypt';
 export interface IStorage {
   // Local User operations
   getLocalUser(username: string): Promise<LocalUser | undefined>;
+  getLocalUsers(): Promise<LocalUser[]>;
   createLocalUser(user: InsertLocalUser): Promise<LocalUser>;
+  updateLocalUser(id: number, user: Partial<InsertLocalUser>): Promise<LocalUser>;
+  deleteLocalUser(id: number): Promise<void>;
   validateLocalUser(username: string, password: string): Promise<LocalUser | undefined>;
 
   // Project operations
@@ -291,6 +294,10 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getLocalUsers(): Promise<LocalUser[]> {
+    return await db.select().from(localUsers).orderBy(asc(localUsers.createdAt));
+  }
+
   async createLocalUser(user: InsertLocalUser): Promise<LocalUser> {
     const hashedPassword = await bcrypt.hash(user.password, 10);
     const [newUser] = await db
@@ -298,6 +305,23 @@ export class DatabaseStorage implements IStorage {
       .values({ ...user, password: hashedPassword })
       .returning();
     return newUser;
+  }
+
+  async updateLocalUser(id: number, user: Partial<InsertLocalUser>): Promise<LocalUser> {
+    const updateData = { ...user };
+    if (user.password) {
+      updateData.password = await bcrypt.hash(user.password, 10);
+    }
+    const [updatedUser] = await db
+      .update(localUsers)
+      .set(updateData)
+      .where(eq(localUsers.id, id))
+      .returning();
+    return updatedUser;
+  }
+
+  async deleteLocalUser(id: number): Promise<void> {
+    await db.delete(localUsers).where(eq(localUsers.id, id));
   }
 
   async validateLocalUser(username: string, password: string): Promise<LocalUser | undefined> {

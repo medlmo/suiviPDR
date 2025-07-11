@@ -10,9 +10,11 @@ import { apiRequest } from "@/lib/queryClient";
 import { Convention } from "@shared/schema";
 import ConventionModal from "@/components/convention-modal";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Conventions() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [showModal, setShowModal] = useState(false);
   const [selectedConvention, setSelectedConvention] = useState<Convention | null>(null);
@@ -90,10 +92,12 @@ export default function Conventions() {
               <FileText className="h-5 w-5" />
               Liste des conventions
             </CardTitle>
-            <Button onClick={() => setShowModal(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter une Convention
-            </Button>
+            {(user?.role === "admin" || user?.role === "user") && (
+              <Button onClick={() => setShowModal(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Ajouter une Convention
+              </Button>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -168,16 +172,18 @@ export default function Conventions() {
                           >
                             <Download className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedConvention(convention);
-                              setShowModal(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          {(user?.role === "admin" || user?.role === "user") && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedConvention(convention);
+                                setShowModal(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

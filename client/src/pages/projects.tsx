@@ -12,9 +12,11 @@ import { Project } from "@shared/schema";
 import ProjectDetailModal from "@/components/project-detail-modal";
 import ProjectModal from "@/components/project-modal";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Projects() {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<string>("");
@@ -100,10 +102,12 @@ export default function Projects() {
                   className="pl-10"
                 />
               </div>
-              <Button onClick={() => setShowProjectModal(true)}>
-                <Plus className="h-4 w-4 mr-2" />
-                Nouveau Projet
-              </Button>
+              {(user?.role === "admin" || user?.role === "user") && (
+                <Button onClick={() => setShowProjectModal(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nouveau Projet
+                </Button>
+              )}
             </div>
           </div>
         </CardHeader>
@@ -197,16 +201,18 @@ export default function Projects() {
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setEditingProject(project);
-                              setShowProjectModal(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          {(user?.role === "admin" || user?.role === "user") && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                setEditingProject(project);
+                                setShowProjectModal(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>

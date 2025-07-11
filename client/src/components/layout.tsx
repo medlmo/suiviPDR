@@ -1,12 +1,12 @@
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Sprout, FolderOpen, FileText, LogOut } from "lucide-react";
+import { Sprout, FolderOpen, FileText, LogOut, Users } from "lucide-react";
 import logoSoussMassa from '../../../attached_assets/Logo.png';
 
 interface LayoutProps {
   children: React.ReactNode;
-  activeTab: "projects" | "conventions";
-  setActiveTab: (tab: "projects" | "conventions") => void;
+  activeTab: "projects" | "conventions" | "users";
+  setActiveTab: (tab: "projects" | "conventions" | "users") => void;
 }
 
 export default function Layout({ children, activeTab, setActiveTab }: LayoutProps) {
@@ -40,7 +40,7 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-700">
-                {user?.username || "Utilisateur"}
+                {user?.username || "Utilisateur"} ({user?.role || "user"})
               </span>
               <Button variant="ghost" onClick={handleLogout}>
                 <LogOut className="h-4 w-4 mr-2" />
@@ -77,6 +77,19 @@ export default function Layout({ children, activeTab, setActiveTab }: LayoutProp
               <FileText size={16} />
               Conventions
             </button>
+            {user?.role === "admin" && (
+              <button
+                onClick={() => setActiveTab("users")}
+                className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                  activeTab === "users"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                <Users size={16} />
+                Utilisateurs
+              </button>
+            )}
           </div>
         </div>
       </nav>
