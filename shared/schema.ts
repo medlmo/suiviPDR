@@ -198,8 +198,7 @@ export const insertLocalUserSchema = createInsertSchema(localUsers).omit({
 });
 
 // Types
-export type UpsertUser = typeof users.$inferInsert;
-export type User = typeof users.$inferSelect;
+
 
 export type LocalUser = typeof localUsers.$inferSelect;
 export type InsertLocalUser = z.infer<typeof insertLocalUserSchema>;

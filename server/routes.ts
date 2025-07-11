@@ -1,13 +1,10 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertProjectSchema, insertConventionSchema, insertPartnerSchema, insertProjectPartnerSchema, insertConventionProjectSchema, insertFinancialAdvanceSchema, insertLocalUserSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
 
   // Local Auth routes
   app.post('/api/auth/login', async (req, res) => {
@@ -47,16 +44,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.get('/api/auth/user', async (req: any, res) => {
     try {
-      // Check for local user session first
+      // Check for local user session
       if (req.session?.localUser) {
         return res.json(req.session.localUser);
-      }
-      
-      // Check for Replit Auth
-      if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
-        const userId = req.user.claims.sub;
-        const user = await storage.getUser(userId);
-        return res.json(user);
       }
       
       res.status(401).json({ message: "Unauthorized" });
@@ -70,11 +60,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const requireAuth = async (req: any, res: any, next: any) => {
     // Check for local user session
     if (req.session?.localUser) {
-      return next();
-    }
-    
-    // Check for Replit Auth
-    if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
       return next();
     }
     

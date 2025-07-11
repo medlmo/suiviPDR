@@ -1,5 +1,4 @@
 import {
-  users,
   localUsers,
   projects,
   conventions,
@@ -7,8 +6,6 @@ import {
   projectPartners,
   conventionProjects,
   financialAdvances,
-  type User,
-  type UpsertUser,
   type LocalUser,
   type InsertLocalUser,
   type Project,
@@ -28,10 +25,6 @@ import { db } from "./db";
 import { eq, desc, asc, like, and } from "drizzle-orm";
 
 export interface IStorage {
-  // User operations (mandatory for Replit Auth)
-  getUser(id: string): Promise<User | undefined>;
-  upsertUser(user: UpsertUser): Promise<User>;
-
   // Local User operations
   getLocalUser(username: string): Promise<LocalUser | undefined>;
   createLocalUser(user: InsertLocalUser): Promise<LocalUser>;
@@ -78,26 +71,6 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  // User operations
-  async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
-  }
-
-  async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
-    return user;
-  }
 
   // Project operations
   async getProjects(search?: string, sortBy?: string, sortOrder: "asc" | "desc" = "asc"): Promise<Project[]> {
@@ -106,7 +79,7 @@ export class DatabaseStorage implements IStorage {
     if (search) {
       query = query.where(
         like(projects.title, `%${search}%`)
-      );
+      ) as any;
     }
 
     const orderFunc = sortOrder === "desc" ? desc : asc;
