@@ -17,12 +17,21 @@ export default function Landing() {
               <p className="text-sm text-gray-600">Suivi de l'exécution des programmes de développement régional (PDR)</p>
             </div>
             
-            <Button 
-              onClick={() => window.location.href = '/api/login'}
-              className="w-full"
-            >
-              Se Connecter
-            </Button>
+            <div className="space-y-3">
+              <Button 
+                onClick={() => window.location.href = '/login'}
+                className="w-full"
+              >
+                Se Connecter
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => window.location.href = '/api/login'}
+                className="w-full"
+              >
+                Se connecter avec Replit
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

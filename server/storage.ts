@@ -1,5 +1,6 @@
 import {
   users,
+  localUsers,
   projects,
   conventions,
   partners,
@@ -8,6 +9,8 @@ import {
   financialAdvances,
   type User,
   type UpsertUser,
+  type LocalUser,
+  type InsertLocalUser,
   type Project,
   type InsertProject,
   type Convention,
@@ -28,6 +31,11 @@ export interface IStorage {
   // User operations (mandatory for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+
+  // Local User operations
+  getLocalUser(username: string): Promise<LocalUser | undefined>;
+  createLocalUser(user: InsertLocalUser): Promise<LocalUser>;
+  validateLocalUser(username: string, password: string): Promise<LocalUser | undefined>;
 
   // Project operations
   getProjects(search?: string, sortBy?: string, sortOrder?: "asc" | "desc"): Promise<Project[]>;
@@ -97,10 +105,7 @@ export class DatabaseStorage implements IStorage {
     
     if (search) {
       query = query.where(
-        and(
-          like(projects.title, `%${search}%`),
-          like(projects.identifier, `%${search}%`)
-        )
+        like(projects.title, `%${search}%`)
       );
     }
 
@@ -108,28 +113,21 @@ export class DatabaseStorage implements IStorage {
     if (sortBy) {
       switch (sortBy) {
         case "identifier":
-          query = query.orderBy(orderFunc(projects.identifier));
-          break;
+          return await query.orderBy(orderFunc(projects.identifier));
         case "title":
-          query = query.orderBy(orderFunc(projects.title));
-          break;
+          return await query.orderBy(orderFunc(projects.title));
         case "axis":
-          query = query.orderBy(orderFunc(projects.axis));
-          break;
+          return await query.orderBy(orderFunc(projects.axis));
         case "domain":
-          query = query.orderBy(orderFunc(projects.domain));
-          break;
+          return await query.orderBy(orderFunc(projects.domain));
         case "budget":
-          query = query.orderBy(orderFunc(projects.budget));
-          break;
+          return await query.orderBy(orderFunc(projects.budget));
         default:
-          query = query.orderBy(orderFunc(projects.createdAt));
+          return await query.orderBy(orderFunc(projects.createdAt));
       }
     } else {
-      query = query.orderBy(orderFunc(projects.createdAt));
+      return await query.orderBy(orderFunc(projects.createdAt));
     }
-
-    return await query;
   }
 
   async getProject(id: number): Promise<Project | undefined> {
@@ -311,6 +309,28 @@ export class DatabaseStorage implements IStorage {
 
   async deleteFinancialAdvance(id: number): Promise<void> {
     await db.delete(financialAdvances).where(eq(financialAdvances.id, id));
+  }
+
+  // Local User operations
+  async getLocalUser(username: string): Promise<LocalUser | undefined> {
+    const [user] = await db.select().from(localUsers).where(eq(localUsers.username, username));
+    return user;
+  }
+
+  async createLocalUser(user: InsertLocalUser): Promise<LocalUser> {
+    const [newUser] = await db
+      .insert(localUsers)
+      .values(user)
+      .returning();
+    return newUser;
+  }
+
+  async validateLocalUser(username: string, password: string): Promise<LocalUser | undefined> {
+    const [user] = await db
+      .select()
+      .from(localUsers)
+      .where(and(eq(localUsers.username, username), eq(localUsers.password, password)));
+    return user;
   }
 }
 

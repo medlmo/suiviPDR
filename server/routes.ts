@@ -2,27 +2,87 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertProjectSchema, insertConventionSchema, insertPartnerSchema, insertProjectPartnerSchema, insertConventionProjectSchema, insertFinancialAdvanceSchema } from "@shared/schema";
+import { insertProjectSchema, insertConventionSchema, insertPartnerSchema, insertProjectPartnerSchema, insertConventionProjectSchema, insertFinancialAdvanceSchema, insertLocalUserSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // Local Auth routes
+  app.post('/api/auth/login', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+
+      const user = await storage.validateLocalUser(username, password);
+      
+      if (!user) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Store user in session
+      (req as any).session.localUser = user;
+      
+      res.json({ message: "Login successful", user: { id: user.id, username: user.username, role: user.role } });
+    } catch (error) {
+      console.error("Error logging in:", error);
+      res.status(500).json({ message: "Failed to login" });
+    }
+  });
+
+  app.post('/api/auth/logout', (req, res) => {
+    (req as any).session.destroy((err: any) => {
+      if (err) {
+        console.error("Error destroying session:", err);
+        return res.status(500).json({ message: "Failed to logout" });
+      }
+      res.json({ message: "Logout successful" });
+    });
+  });
+
+  // Auth routes
+  app.get('/api/auth/user', async (req: any, res) => {
+    try {
+      // Check for local user session first
+      if (req.session?.localUser) {
+        return res.json(req.session.localUser);
+      }
+      
+      // Check for Replit Auth
+      if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
+        const userId = req.user.claims.sub;
+        const user = await storage.getUser(userId);
+        return res.json(user);
+      }
+      
+      res.status(401).json({ message: "Unauthorized" });
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
     }
   });
 
+  // Custom authentication middleware
+  const requireAuth = async (req: any, res: any, next: any) => {
+    // Check for local user session
+    if (req.session?.localUser) {
+      return next();
+    }
+    
+    // Check for Replit Auth
+    if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
+      return next();
+    }
+    
+    return res.status(401).json({ message: "Unauthorized" });
+  };
+
   // Project routes
-  app.get('/api/projects', isAuthenticated, async (req, res) => {
+  app.get('/api/projects', requireAuth, async (req, res) => {
     try {
       const { search, sortBy, sortOrder } = req.query;
       const projects = await storage.getProjects(
@@ -37,7 +97,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/projects/:id', isAuthenticated, async (req, res) => {
+  app.get('/api/projects/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const project = await storage.getProject(id);
@@ -51,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/projects', isAuthenticated, async (req, res) => {
+  app.post('/api/projects', requireAuth, async (req, res) => {
     try {
       const projectData = insertProjectSchema.parse(req.body);
       const project = await storage.createProject(projectData);
@@ -65,7 +125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/projects/:id', isAuthenticated, async (req, res) => {
+  app.put('/api/projects/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const projectData = insertProjectSchema.partial().parse(req.body);
@@ -80,7 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/projects/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/projects/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteProject(id);
@@ -92,7 +152,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Convention routes
-  app.get('/api/conventions', isAuthenticated, async (req, res) => {
+  app.get('/api/conventions', requireAuth, async (req, res) => {
     try {
       const conventions = await storage.getConventions();
       res.json(conventions);
@@ -102,7 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/conventions/:id', isAuthenticated, async (req, res) => {
+  app.get('/api/conventions/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const convention = await storage.getConvention(id);
@@ -116,7 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/conventions', isAuthenticated, async (req, res) => {
+  app.post('/api/conventions', requireAuth, async (req, res) => {
     try {
       const conventionData = insertConventionSchema.parse(req.body);
       const convention = await storage.createConvention(conventionData);
@@ -130,7 +190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/conventions/:id', isAuthenticated, async (req, res) => {
+  app.put('/api/conventions/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const conventionData = insertConventionSchema.partial().parse(req.body);
@@ -145,7 +205,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/conventions/:id', isAuthenticated, async (req, res) => {
+  app.delete('/api/conventions/:id', requireAuth, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteConvention(id);
@@ -157,7 +217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Partner routes
-  app.get('/api/partners', isAuthenticated, async (req, res) => {
+  app.get('/api/partners', requireAuth, async (req, res) => {
     try {
       const partners = await storage.getPartners();
       res.json(partners);
@@ -167,7 +227,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/partners', isAuthenticated, async (req, res) => {
+  app.post('/api/partners', requireAuth, async (req, res) => {
     try {
       const partnerData = insertPartnerSchema.parse(req.body);
       const partner = await storage.createPartner(partnerData);
@@ -182,7 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Project Partner routes
-  app.get('/api/projects/:id/partners', isAuthenticated, async (req, res) => {
+  app.get('/api/projects/:id/partners', requireAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const partners = await storage.getProjectPartners(projectId);
@@ -193,7 +253,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/projects/:id/partners', isAuthenticated, async (req, res) => {
+  app.post('/api/projects/:id/partners', requireAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const partnerData = insertProjectPartnerSchema.parse({ ...req.body, projectId });
@@ -209,7 +269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Convention Project routes
-  app.get('/api/conventions/:id/projects', isAuthenticated, async (req, res) => {
+  app.get('/api/conventions/:id/projects', requireAuth, async (req, res) => {
     try {
       const conventionId = parseInt(req.params.id);
       const projects = await storage.getConventionProjects(conventionId);
@@ -220,7 +280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/conventions/:id/projects', isAuthenticated, async (req, res) => {
+  app.post('/api/conventions/:id/projects', requireAuth, async (req, res) => {
     try {
       const conventionId = parseInt(req.params.id);
       const projectData = insertConventionProjectSchema.parse({ ...req.body, conventionId });
@@ -236,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Financial Advance routes
-  app.get('/api/projects/:id/financial-advances', isAuthenticated, async (req, res) => {
+  app.get('/api/projects/:id/financial-advances', requireAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const advances = await storage.getFinancialAdvances(projectId);
@@ -247,7 +307,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/projects/:id/financial-advances', isAuthenticated, async (req, res) => {
+  app.post('/api/projects/:id/financial-advances', requireAuth, async (req, res) => {
     try {
       const projectId = parseInt(req.params.id);
       const advanceData = insertFinancialAdvanceSchema.parse({ ...req.body, projectId });

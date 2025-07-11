@@ -37,6 +37,16 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Local users table for admin access
+export const localUsers = pgTable("local_users", {
+  id: serial("id").primaryKey(),
+  username: varchar("username").unique().notNull(),
+  password: varchar("password").notNull(),
+  role: varchar("role").notNull().default("user"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Projects table
 export const projects = pgTable("projects", {
   id: serial("id").primaryKey(),
@@ -181,9 +191,18 @@ export const insertFinancialAdvanceSchema = createInsertSchema(financialAdvances
   createdAt: true,
 });
 
+export const insertLocalUserSchema = createInsertSchema(localUsers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+
+export type LocalUser = typeof localUsers.$inferSelect;
+export type InsertLocalUser = z.infer<typeof insertLocalUserSchema>;
 
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = z.infer<typeof insertProjectSchema>;
