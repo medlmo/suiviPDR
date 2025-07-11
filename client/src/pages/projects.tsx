@@ -10,6 +10,7 @@ import { Search, Plus, Eye, Edit, ArrowUpDown } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Project } from "@shared/schema";
 import ProjectDetailModal from "@/components/project-detail-modal";
+import ProjectModal from "@/components/project-modal";
 import { isUnauthorizedError } from "@/lib/authUtils";
 
 export default function Projects() {
@@ -19,6 +20,8 @@ export default function Projects() {
   const [sortBy, setSortBy] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
 
   const { data: projects = [], isLoading, error } = useQuery({
     queryKey: ["/api/projects", { search, sortBy, sortOrder }],
@@ -97,7 +100,7 @@ export default function Projects() {
                   className="pl-10"
                 />
               </div>
-              <Button>
+              <Button onClick={() => setShowProjectModal(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Nouveau Projet
               </Button>
@@ -198,11 +201,8 @@ export default function Projects() {
                             variant="ghost"
                             size="sm"
                             onClick={() => {
-                              // TODO: Implement edit functionality
-                              toast({
-                                title: "Fonctionnalité à venir",
-                                description: "L'édition des projets sera disponible prochainement.",
-                              });
+                              setEditingProject(project);
+                              setShowProjectModal(true);
                             }}
                           >
                             <Edit className="h-4 w-4" />
@@ -222,6 +222,16 @@ export default function Projects() {
         <ProjectDetailModal
           project={selectedProject}
           onClose={() => setSelectedProject(null)}
+        />
+      )}
+
+      {showProjectModal && (
+        <ProjectModal
+          project={editingProject}
+          onClose={() => {
+            setShowProjectModal(false);
+            setEditingProject(null);
+          }}
         />
       )}
     </div>
