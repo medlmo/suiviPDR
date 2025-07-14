@@ -13,9 +13,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { insertProjectSchema, Project } from "@shared/schema";
 import { z } from "zod";
 
-const formSchema = insertProjectSchema.extend({
-  budget: z.string().min(1, "Le budget est requis"),
-});
+const formSchema = insertProjectSchema;
 
 type FormData = z.infer<typeof formSchema>;
 
@@ -34,23 +32,24 @@ export default function ProjectModal({ project, onClose }: ProjectModalProps) {
     defaultValues: {
       identifier: project?.identifier || "",
       title: project?.title || "",
-      description: project?.description || "",
       axis: project?.axis || "",
       domain: project?.domain || "",
-      budget: project?.budget?.toString() || "",
-      location: project?.location || "",
-      status: project?.status || "en_cours",
+      region: project?.region || "",
+      province: project?.province || "",
+      commune: project?.commune || "",
+      budget: project?.budget || "",
+      status: project?.status || "active",
     },
   });
 
   const createMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const projectData = {
-        ...data,
-        budget: parseFloat(data.budget),
-      };
-      const response = await apiRequest("POST", "/api/projects", projectData);
-      return response.json();
+      console.log("Création de projet avec données:", data);
+      const response = await apiRequest("/api/projects", {
+        method: "POST",
+        body: data,
+      });
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
@@ -72,12 +71,12 @@ export default function ProjectModal({ project, onClose }: ProjectModalProps) {
 
   const updateMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const projectData = {
-        ...data,
-        budget: parseFloat(data.budget),
-      };
-      const response = await apiRequest("PUT", `/api/projects/${project?.id}`, projectData);
-      return response.json();
+      console.log("Mise à jour de projet avec données:", data);
+      const response = await apiRequest(`/api/projects/${project?.id}`, {
+        method: "PUT",
+        body: data,
+      });
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
@@ -141,10 +140,10 @@ export default function ProjectModal({ project, onClose }: ProjectModalProps) {
                   <SelectValue placeholder="Sélectionnez un statut" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="en_cours">En cours</SelectItem>
-                  <SelectItem value="termine">Terminé</SelectItem>
-                  <SelectItem value="suspendu">Suspendu</SelectItem>
-                  <SelectItem value="annule">Annulé</SelectItem>
+                  <SelectItem value="active">Actif</SelectItem>
+                  <SelectItem value="inactive">Inactif</SelectItem>
+                  <SelectItem value="suspended">Suspendu</SelectItem>
+                  <SelectItem value="cancelled">Annulé</SelectItem>
                 </SelectContent>
               </Select>
               {form.formState.errors.status && (
@@ -165,21 +164,6 @@ export default function ProjectModal({ project, onClose }: ProjectModalProps) {
             {form.formState.errors.title && (
               <p className="text-sm text-red-600">
                 {form.formState.errors.title.message}
-              </p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              {...form.register("description")}
-              placeholder="Description du projet"
-              rows={3}
-            />
-            {form.formState.errors.description && (
-              <p className="text-sm text-red-600">
-                {form.formState.errors.description.message}
               </p>
             )}
           </div>
@@ -214,13 +198,55 @@ export default function ProjectModal({ project, onClose }: ProjectModalProps) {
             </div>
           </div>
 
+          <div className="grid grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="region">Région *</Label>
+              <Input
+                id="region"
+                {...form.register("region")}
+                placeholder="Région"
+              />
+              {form.formState.errors.region && (
+                <p className="text-sm text-red-600">
+                  {form.formState.errors.region.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="province">Province *</Label>
+              <Input
+                id="province"
+                {...form.register("province")}
+                placeholder="Province"
+              />
+              {form.formState.errors.province && (
+                <p className="text-sm text-red-600">
+                  {form.formState.errors.province.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="commune">Commune *</Label>
+              <Input
+                id="commune"
+                {...form.register("commune")}
+                placeholder="Commune"
+              />
+              {form.formState.errors.commune && (
+                <p className="text-sm text-red-600">
+                  {form.formState.errors.commune.message}
+                </p>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="budget">Budget (MAD) *</Label>
               <Input
                 id="budget"
-                type="number"
-                step="0.01"
                 {...form.register("budget")}
                 placeholder="0.00"
               />

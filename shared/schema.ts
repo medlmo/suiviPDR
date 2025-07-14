@@ -164,6 +164,9 @@ export const insertProjectSchema = createInsertSchema(projects).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  engagements: true,
+  payments: true,
+  physicalProgress: true,
 });
 
 export const insertConventionSchema = createInsertSchema(conventions).omit({
