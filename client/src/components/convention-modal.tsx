@@ -52,8 +52,12 @@ export default function ConventionModal({ convention, onClose }: ConventionModal
 
   const createMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const response = await apiRequest("POST", "/api/conventions", data);
-      return response.json();
+      console.log("Création de convention avec données:", data);
+      const response = await apiRequest("/api/conventions", {
+        method: "POST",
+        body: data,
+      });
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/conventions"] });
@@ -64,6 +68,7 @@ export default function ConventionModal({ convention, onClose }: ConventionModal
       onClose();
     },
     onError: (error) => {
+      console.error("Erreur lors de la création de convention:", error);
       if (isUnauthorizedError(error)) {
         toast({
           title: "Non autorisé",
@@ -85,8 +90,12 @@ export default function ConventionModal({ convention, onClose }: ConventionModal
 
   const updateMutation = useMutation({
     mutationFn: async (data: FormData) => {
-      const response = await apiRequest("PUT", `/api/conventions/${convention!.id}`, data);
-      return response.json();
+      console.log("Mise à jour de convention avec données:", data);
+      const response = await apiRequest(`/api/conventions/${convention!.id}`, {
+        method: "PUT",
+        body: data,
+      });
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/conventions"] });
@@ -97,6 +106,7 @@ export default function ConventionModal({ convention, onClose }: ConventionModal
       onClose();
     },
     onError: (error) => {
+      console.error("Erreur lors de la mise à jour de convention:", error);
       if (isUnauthorizedError(error)) {
         toast({
           title: "Non autorisé",
