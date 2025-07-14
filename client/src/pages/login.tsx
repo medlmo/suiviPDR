@@ -32,13 +32,19 @@ export default function Login() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginData) => {
-      const response = await apiRequest("POST", "/api/auth/login", data);
-      return response.json();
+      console.log("Tentative de connexion avec:", data);
+      const response = await apiRequest("/api/auth/login", {
+        method: "POST",
+        body: data,
+      });
+      return response;
     },
     onSuccess: () => {
+      console.log("Connexion réussie");
       window.location.href = "/";
     },
     onError: (error: Error) => {
+      console.error("Erreur de connexion:", error);
       setError("Nom d'utilisateur ou mot de passe incorrect");
     },
   });
