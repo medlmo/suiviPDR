@@ -28,6 +28,12 @@ export async function apiRequest(
   });
 
   await throwIfResNotOk(res);
+  
+  // Pour les requêtes DELETE, pas de contenu JSON à renvoyer
+  if (method === "DELETE" && res.status === 204) {
+    return null;
+  }
+  
   return res.json();
 }
 

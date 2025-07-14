@@ -35,19 +35,30 @@ export default function Users() {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: number) => {
-      const response = await apiRequest(`/api/users/${userId}`, {
+      console.log("Suppression de l'utilisateur ID:", userId);
+      const response = await fetch(`/api/users/${userId}`, {
         method: "DELETE",
+        credentials: "include",
       });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`${response.status}: ${errorText}`);
+      }
+      
       return response;
     },
     onSuccess: () => {
+      console.log("Utilisateur supprimé avec succès");
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.refetchQueries({ queryKey: ["/api/users"] });
       toast({
         title: "Utilisateur supprimé",
         description: "L'utilisateur a été supprimé avec succès",
       });
     },
     onError: (error: Error) => {
+      console.error("Erreur lors de la suppression:", error);
       toast({
         title: "Erreur",
         description: error.message,
