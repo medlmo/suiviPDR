@@ -15,6 +15,7 @@ import { z } from "zod";
 const formSchema = insertLocalUserSchema.extend({
   confirmPassword: z.string().optional(),
 }).refine((data) => {
+  // Vérifier la correspondance des mots de passe seulement s'ils sont fournis
   if (data.password && data.confirmPassword) {
     return data.password === data.confirmPassword;
   }
@@ -49,6 +50,7 @@ export default function UserModal({ user, onClose }: UserModalProps) {
   const createUserMutation = useMutation({
     mutationFn: async (data: FormData) => {
       const { confirmPassword, ...userData } = data;
+      console.log("Création d'utilisateur avec données:", userData);
       const response = await apiRequest("/api/users", {
         method: "POST",
         body: userData,
@@ -64,6 +66,7 @@ export default function UserModal({ user, onClose }: UserModalProps) {
       onClose();
     },
     onError: (error: Error) => {
+      console.error("Erreur lors de la création:", error);
       toast({
         title: "Erreur",
         description: error.message,
@@ -79,6 +82,7 @@ export default function UserModal({ user, onClose }: UserModalProps) {
       if (!userData.password) {
         delete userData.password;
       }
+      console.log("Mise à jour d'utilisateur avec données:", userData);
       const response = await apiRequest(`/api/users/${user!.id}`, {
         method: "PUT",
         body: userData,
@@ -94,6 +98,7 @@ export default function UserModal({ user, onClose }: UserModalProps) {
       onClose();
     },
     onError: (error: Error) => {
+      console.error("Erreur lors de la mise à jour:", error);
       toast({
         title: "Erreur",
         description: error.message,
@@ -103,6 +108,8 @@ export default function UserModal({ user, onClose }: UserModalProps) {
   });
 
   const onSubmit = (data: FormData) => {
+    console.log("Soumission du formulaire:", data);
+    console.log("Mode édition:", isEditing);
     if (isEditing) {
       updateUserMutation.mutate(data);
     } else {
