@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, Edit, Download, FileText } from "lucide-react";
+import { Plus, Eye, Edit, Download, FileText, Trash2 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { Convention } from "@shared/schema";
 import ConventionModal from "@/components/convention-modal";
@@ -61,6 +61,46 @@ export default function Conventions() {
       title: "Projets liés",
       description: "Affichage des projets liés à venir.",
     });
+  };
+
+  const deleteConventionMutation = useMutation({
+    mutationFn: async (conventionId: number) => {
+      console.log("Suppression de la convention ID:", conventionId);
+      const response = await fetch(`/api/conventions/${conventionId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`${response.status}: ${errorText}`);
+      }
+      
+      return response;
+    },
+    onSuccess: () => {
+      console.log("Convention supprimée avec succès");
+      queryClient.invalidateQueries({ queryKey: ["/api/conventions"] });
+      queryClient.refetchQueries({ queryKey: ["/api/conventions"] });
+      toast({
+        title: "Convention supprimée",
+        description: "La convention a été supprimée avec succès",
+      });
+    },
+    onError: (error: Error) => {
+      console.error("Erreur lors de la suppression:", error);
+      toast({
+        title: "Erreur",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteConvention = (convention: Convention) => {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer la convention "${convention.title}" ?`)) {
+      deleteConventionMutation.mutate(convention.id);
+    }
   };
 
   if (error) {
@@ -173,16 +213,27 @@ export default function Conventions() {
                             <Download className="h-4 w-4" />
                           </Button>
                           {(user?.role === "admin" || user?.role === "user") && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedConvention(convention);
-                                setShowModal(true);
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedConvention(convention);
+                                  setShowModal(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteConvention(convention)}
+                                className="text-red-600 hover:text-red-800"
+                                disabled={deleteConventionMutation.isPending}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </>
                           )}
                         </div>
                       </TableCell>

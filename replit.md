@@ -119,3 +119,12 @@ The project is structured as a monorepo with shared types and schemas, making it
 - **User interface**: Updated to show/hide actions based on user permissions
 - **User management**: Added complete user management interface for admins
 - **Test users created**: admin/admin123, user1/admin123, superviseur1/admin123
+
+### 2025-07-14: CRUD Operations and Frontend Fixes
+- **User management**: Fixed user deletion with proper cache invalidation
+- **Project creation**: Corrected project form with all required fields (region, province, commune)
+- **Convention creation**: Fixed API integration issues with proper request signatures
+- **Delete functionality**: Added convention deletion feature with confirmation dialog
+- **Form validation**: Enhanced form schemas to match database requirements
+- **Error handling**: Improved error messages and logging for better debugging
+- **API consistency**: Standardized all API calls to use the correct apiRequest signature
