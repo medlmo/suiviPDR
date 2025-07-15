@@ -3,8 +3,42 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertProjectSchema, insertConventionSchema, insertPartnerSchema, insertProjectPartnerSchema, insertConventionProjectSchema, insertFinancialAdvanceSchema, insertLocalUserSchema } from "@shared/schema";
 import { z } from "zod";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { nanoid } from "nanoid";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Ensure uploads directory exists
+  const uploadsDir = path.join(process.cwd(), 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  // Configure multer for file uploads
+  const storage_multer = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, uploadsDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueName = `${nanoid()}_${file.originalname}`;
+      cb(null, uniqueName);
+    }
+  });
+
+  const upload = multer({
+    storage: storage_multer,
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype === 'application/pdf') {
+        cb(null, true);
+      } else {
+        cb(new Error('Only PDF files are allowed'));
+      }
+    },
+    limits: {
+      fileSize: 10 * 1024 * 1024 // 10MB limit
+    }
+  });
 
   // Local Auth routes
   app.post('/api/auth/login', async (req, res) => {
@@ -81,6 +115,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return next();
     };
   };
+
+  // File upload route
+  app.post('/api/upload', requireAuth, upload.single('file'), (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      const fileUrl = `/uploads/${req.file.filename}`;
+      res.json({ 
+        message: "File uploaded successfully", 
+        url: fileUrl,
+        filename: req.file.filename 
+      });
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+
+  // Serve uploaded files
+  app.get('/uploads/:filename', (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(uploadsDir, filename);
+    
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ message: "File not found" });
+    }
+    
+    res.sendFile(filePath);
+  });
 
   // Permission helpers
   const canWrite = requireRole(['admin', 'user']); // admin et user peuvent écrire

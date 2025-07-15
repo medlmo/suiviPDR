@@ -32,6 +32,8 @@ export default function ConventionModal({ convention, onClose }: ConventionModal
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedProjects, setSelectedProjects] = useState<number[]>([]);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const { data: projects = [] } = useQuery({
     queryKey: ["/api/projects"],
@@ -53,9 +55,23 @@ export default function ConventionModal({ convention, onClose }: ConventionModal
   const createMutation = useMutation({
     mutationFn: async (data: FormData) => {
       console.log("Création de convention avec données:", data);
+      
+      // Upload file first if there's one
+      let documentUrl = "";
+      if (selectedFile) {
+        setIsUploading(true);
+        documentUrl = await uploadFile(selectedFile);
+        setIsUploading(false);
+      }
+      
+      const conventionData = {
+        ...data,
+        documentUrl,
+      };
+      
       const response = await apiRequest("/api/conventions", {
         method: "POST",
-        body: data,
+        body: conventionData,
       });
       return response;
     },
@@ -91,9 +107,23 @@ export default function ConventionModal({ convention, onClose }: ConventionModal
   const updateMutation = useMutation({
     mutationFn: async (data: FormData) => {
       console.log("Mise à jour de convention avec données:", data);
+      
+      // Upload file first if there's a new one
+      let documentUrl = convention?.documentUrl || "";
+      if (selectedFile) {
+        setIsUploading(true);
+        documentUrl = await uploadFile(selectedFile);
+        setIsUploading(false);
+      }
+      
+      const conventionData = {
+        ...data,
+        documentUrl,
+      };
+      
       const response = await apiRequest(`/api/conventions/${convention!.id}`, {
         method: "PUT",
-        body: data,
+        body: conventionData,
       });
       return response;
     },
@@ -140,6 +170,60 @@ export default function ConventionModal({ convention, onClose }: ConventionModal
         ? prev.filter(id => id !== projectId)
         : [...prev, projectId]
     );
+  };
+
+  const uploadFile = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      return result.url;
+    } catch (error) {
+      console.error('Upload error:', error);
+      throw error;
+    }
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "Fichier trop volumineux",
+          description: "Le fichier ne peut pas dépasser 10MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check file type
+      if (!file.type.includes('pdf')) {
+        toast({
+          title: "Type de fichier non supporté",
+          description: "Seuls les fichiers PDF sont acceptés",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setSelectedFile(file);
+      toast({
+        title: "Fichier sélectionné",
+        description: `${file.name} sera téléchargé lors de la sauvegarde`,
+      });
+    }
   };
 
   return (
@@ -223,17 +307,26 @@ export default function ConventionModal({ convention, onClose }: ConventionModal
                     type="file"
                     accept=".pdf"
                     className="hidden"
-                    onChange={(e) => {
-                      // TODO: Handle file upload
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        toast({
-                          title: "Fichier sélectionné",
-                          description: `${file.name} sera téléchargé lors de la sauvegarde`,
-                        });
-                      }
-                    }}
+                    id="file-upload"
+                    onChange={handleFileSelect}
                   />
+                  <Label htmlFor="file-upload" className="cursor-pointer">
+                    <div className="mt-2">
+                      <Button type="button" variant="outline" size="sm">
+                        Parcourir
+                      </Button>
+                    </div>
+                  </Label>
+                  {selectedFile && (
+                    <div className="mt-2 text-sm text-green-600">
+                      ✓ {selectedFile.name} ({Math.round(selectedFile.size / 1024)} KB)
+                    </div>
+                  )}
+                  {convention?.documentUrl && !selectedFile && (
+                    <div className="mt-2 text-sm text-blue-600">
+                      📄 Document existant disponible
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -274,9 +367,11 @@ export default function ConventionModal({ convention, onClose }: ConventionModal
             </Button>
             <Button 
               type="submit" 
-              disabled={createMutation.isPending || updateMutation.isPending}
+              disabled={createMutation.isPending || updateMutation.isPending || isUploading}
             >
-              {createMutation.isPending || updateMutation.isPending ? "Sauvegarde..." : convention ? "Modifier" : "Créer"}
+              {isUploading ? "Upload en cours..." : 
+               (createMutation.isPending || updateMutation.isPending) ? "Sauvegarde..." : 
+               convention ? "Modifier" : "Créer"}
             </Button>
           </div>
         </form>

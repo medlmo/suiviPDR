@@ -128,3 +128,5 @@ The project is structured as a monorepo with shared types and schemas, making it
 - **Form validation**: Enhanced form schemas to match database requirements
 - **Error handling**: Improved error messages and logging for better debugging
 - **API consistency**: Standardized all API calls to use the correct apiRequest signature
+- **File upload**: Added PDF upload functionality for conventions with multer middleware
+- **File serving**: Implemented secure file serving with authentication
